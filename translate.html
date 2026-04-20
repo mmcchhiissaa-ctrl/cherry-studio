@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cherry's Translation Tool</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&family=Noto+Sans+JP:wght@300;400&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --accent: #c8a97e;
+    --good: #7ec8a0;
+    --text: #e8e4dc;
+    --muted: #7a7a8a;
+    --danger: #c87e7e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .container { max-width: 640px; margin: 0 auto; }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .key-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .key-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+  .key-input:focus { outline: none; border-color: var(--accent); }
+
+  .save-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .save-btn.saved { color: var(--good); border-color: var(--good); }
+
+  label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text);
+    resize: vertical;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea.editable { border-color: #3a3a45; }
+  textarea.editable:focus { border-color: var(--accent); }
+
+  .go-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #e8c99e);
+    border: none;
+    color: #0d0d0f;
+    padding: 13px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: opacity 0.2s;
+  }
+  .go-btn:hover { opacity: 0.88; }
+  .go-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .result-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .result-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn.done { color: var(--good); border-color: var(--good); }
+
+  .result-text {
+    font-size: 0.88rem;
+    line-height: 1.8;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+  }
+
+  .result-text.en {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+  }
+
+  .sync-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.15s;
+  }
+  .sync-btn:hover { background: var(--accent); color: #0d0d0f; }
+
+  .loading {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: none;
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .step-dot.active { background: var(--accent); animation: pulse 1s infinite; }
+  .step-dot.done { background: var(--good); animation: none; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .step-label { font-size: 0.78rem; color: var(--muted); }
+
+  .error {
+    background: #2e1a1a;
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: var(--danger);
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  .reset-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  #results { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo">✦ Cherry's Translation Tool</div>
+  <div class="sub">コメントをコピペ → 日本語訳 + 返信案を自動生成</div>
+
+  <div class="key-row">
+    <input class="key-input" type="password" id="apiKey" placeholder="Anthropic API Key (sk-ant-...)" />
+    <button class="save-btn" id="saveBtn" onclick="saveKey()">保存</button>
+  </div>
+
+  <label>YouTubeコメントを貼り付け</label>
+  <textarea id="commentInput" rows="5" placeholder="Paste YouTube comment here..."></textarea>
+
+  <button class="go-btn" id="goBtn" onclick="processComment()">✦ 翻訳 + 返信案を生成</button>
+
+  <div class="error" id="errorBox"></div>
+
+  <div class="loading" id="loadingBox">
+    <div class="step-indicator" style="justify-content:center">
+      <div class="step-dot" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+    </div>
+    <div id="loadingLabel">処理中...</div>
+  </div>
+
+  <div id="results">
+    <div class="result-box">
+      <div class="result-label">
+        🇯🇵 日本語訳
+        <button class="copy-btn" onclick="copyEl('jaText', this)">コピー</button>
+      </div>
+      <div class="result-text" id="jaText"></div>
+    </div>
+
+    <div class="result-box">
+      <div class="result-label">
+        ✦ 返信案（英語）
+        <button class="copy-btn" onclick="copyEl('replyEnText', this)">コピー</button>
+      </div>
+      <div class="result-text en" id="replyEnText"></div>
+    </div>
+
+    <div class="result-box">
+      <div class="result-label">✏️ 返信案（日本語）— 編集可能</div>
+      <textarea class="editable" id="replyJaInput" rows="4"></textarea>
+      <button class="sync-btn" onclick="syncToEnglish()">↺ 日本語を編集したら英語に同期</button>
+    </div>
+
+    <button class="reset-btn" onclick="resetAll()">↩ リセット</button>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM = `You are helping Cherry, a 55-year-old Japanese woman who makes English YouTube videos about solo life in Tokyo. She is authentic, intellectual, witty, punk rock spirit, self-loving, free. She has a Spanish partner of 10+ years but her channel is about solo life so she doesn't bring it up unless someone implies she needs to find someone.
+
+REPLY RULES — follow strictly:
+- Tone: warm, light, elegant, never pushy, adult wit, genuine
+- Match commenter's opening greeting (Hi→Hello 😊, no greeting→no greeting)
+- Emoji: use sparingly, never childish. 🤭 only for self-deprecating "hehe" moments
+- NEVER use: "It means a lot to me", "Your words mean a lot to me", "I believe", "Thank you for being here", "Here", thoughtful/insightful/meaningful as compliments, em dash (—), commenter's name
+- No paragraph line breaks (comment section not email)
+- Strong empathy/heavy content: slightly longer, sincere
+- Simple compliment: just "Thank you 😊", no self-story
+- Always reply in commenter's language
+- Never say "I'm just enjoying my way" type phrases
+- If someone says hope you find love/partner: mention she has a wonderful partner of 10+ years
+- No politics, religion, ideology
+- Cherry does NOT self-narrate in replies — focus stays on commenter`;
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('cherry_ak');
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    document.getElementById('saveBtn').textContent = '保存済 ✓';
+    document.getElementById('saveBtn').classList.add('saved');
+  }
+});
+
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  localStorage.setItem('cherry_ak', key);
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '保存済 ✓';
+  btn.classList.add('saved');
+}
+
+async function callAI(apiKey, userMsg, maxTokens = 400) {
+  const resp = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      system: SYSTEM,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.find(b => b.type === 'text')?.text?.trim() || '';
+}
+
+function setStep(n, label) {
+  document.getElementById('loadingLabel').textContent = label;
+  for (let i = 1; i <= 3; i++) {
+    const d = document.getElementById('dot' + i);
+    d.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+async function processComment() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const comment = document.getElementById('commentInput').value.trim();
+  if (!apiKey) { showError('APIキーを入力してね！'); return; }
+  if (!comment) { showError('コメントを貼り付けてね！'); return; }
+
+  hideError();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('loadingBox').style.display = 'block';
+  document.getElementById('goBtn').disabled = true;
+
+  try {
+    setStep(1, '日本語に翻訳中...');
+    const jaText = await callAI(apiKey,
+      `Translate this YouTube comment into casual, friendly Japanese (タメ口, no keigo, warm). Keep all emoji exactly as-is. Output ONLY the translation.\n\n"${comment}"`, 300);
+
+    setStep(2, '返信案を生成中...');
+    const replyEn = await callAI(apiKey,
+      `Write a reply for Cherry to this YouTube comment. Follow all rules exactly.\n\nComment: "${comment}"\n\nReply only:`, 300);
+
+    setStep(3, '日本語に変換中...');
+    const replyJa = await callAI(apiKey,
+      `Translate this reply into casual Japanese (タメ口). Keep all emoji exactly as-is. Output ONLY the translation.\n\n"${replyEn}"`, 300);
+
+    document.getElementById('jaText').textContent = jaText;
+    document.getElementById('replyEnText').textContent = replyEn;
+    document.getElementById('replyJaInput').value = replyJa;
+
+    document.getElementById('loadingBox').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('loadingBox').style.display = 'none';
+    showError('エラー: ' + e.message);
+  }
+
+  document.getElementById('goBtn').disabled = false;
+}
+
+async function syncToEnglish() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const ja = document.getElementById('replyJaInput').value.trim();
+  if (!apiKey || !ja) return;
+
+  document.getElementById('loadingBox').style.display = 'block';
+  setStep(1, '英語に変換中...');
+
+  try {
+    const en = await callAI(apiKey,
+      `Translate this Japanese YouTube reply back to English. Keep the same warm tone and all emoji exactly as-is. Output ONLY the translation.\n\n"${ja}"`, 300);
+    document.getElementById('replyEnText').textContent = en;
+  } catch(e) { showError('エラー: ' + e.message); }
+
+  document.getElementById('loadingBox').style.display = 'none';
+}
+
+function copyEl(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard?.writeText(text);
+  btn.textContent = '✓ コピー完了';
+  btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('done'); }, 2000);
+}
+
+function resetAll() {
+  document.getElementById('commentInput').value = '';
+  document.getElementById('results').style.display = 'none';
+  hideError();
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('errorBox').style.display = 'none';
+}
+</script>
+</body>
+</html>
