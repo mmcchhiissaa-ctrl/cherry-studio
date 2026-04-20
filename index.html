@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cherry's Comment Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --accent: #c8a97e;
+    --accent2: #7eb8c8;
+    --danger: #c87e7e;
+    --good: #7ec8a0;
+    --purple: #a07ec8;
+    --text: #e8e4dc;
+    --muted: #7a7a8a;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh; height: 100dvh;
+    overflow: hidden;
+  }
+
+  .screen { display:none; flex-direction:column; height:100vh; height:100dvh; }
+  .screen.active { display:flex; }
+
+  /* SETUP SCREEN */
+  .setup-screen {
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center;
+    height:100vh; padding:30px; gap:20px;
+  }
+  .setup-screen.active { display:flex; }
+
+  .setup-logo {
+    font-family:'DM Serif Display',serif;
+    font-size:1.8rem; color:var(--accent);
+    text-align:center; margin-bottom:10px;
+  }
+  .setup-sub { font-size:0.85rem; color:var(--muted); text-align:center; line-height:1.7; }
+
+  .setup-box {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:24px; width:100%; max-width:480px;
+  }
+  .setup-label {
+    font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--muted); margin-bottom:8px;
+  }
+  .setup-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; font-family:'DM Sans',sans-serif;
+    font-size:0.85rem; color:var(--text); margin-bottom:14px;
+  }
+  .setup-input:focus { outline:none; border-color:var(--accent); }
+
+  .setup-btn {
+    width:100%; background:linear-gradient(135deg,var(--accent),#e8c99e);
+    border:none; color:var(--bg); padding:14px; border-radius:12px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.95rem;
+    cursor:pointer; margin-top:6px;
+  }
+  .setup-btn:active { opacity:0.85; }
+  .setup-note { font-size:0.72rem; color:var(--muted); text-align:center; line-height:1.6; }
+
+  /* TOP BAR */
+  .top-bar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:14px 18px 12px; flex-shrink:0;
+  }
+  .top-row { display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-family:'DM Serif Display',serif; font-size:1.1rem; color:var(--accent); }
+  .sync-btn {
+    background:none; border:1px solid var(--border); color:var(--muted);
+    padding:5px 12px; border-radius:20px; font-size:0.72rem;
+    cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .sync-btn:active { border-color:var(--accent); color:var(--accent); }
+
+  .stat-row {
+    display:flex; gap:7px; margin-top:10px;
+    overflow-x:auto; padding-bottom:2px; scrollbar-width:none;
+  }
+  .stat-row::-webkit-scrollbar { display:none; }
+  .pill {
+    flex-shrink:0; background:var(--surface2); border:1px solid var(--border);
+    border-radius:20px; padding:4px 10px; font-size:0.72rem;
+    display:flex; align-items:center; gap:4px;
+  }
+  .pill b { font-weight:600; }
+  .pill.g b { color:var(--good); }
+  .pill.d b { color:var(--danger); }
+  .pill.p b { color:var(--purple); }
+  .pill.b b { color:var(--accent2); }
+
+  /* TABS */
+  .tabs {
+    display:flex; background:var(--surface);
+    border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .tab {
+    flex:1; padding:10px 4px; text-align:center;
+    font-size:0.68rem; color:var(--muted); cursor:pointer;
+    border:none; background:none; font-family:'DM Sans',sans-serif;
+    border-bottom:2px solid transparent; transition:all 0.15s;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .tab .ti { font-size:1rem; }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .badge {
+    font-size:0.55rem; font-weight:700; padding:1px 5px;
+    border-radius:10px; min-width:16px; background:var(--accent); color:var(--bg);
+  }
+  .badge.d { background:var(--danger); color:#fff; }
+
+  /* LIST */
+  .list-scroll {
+    flex:1; overflow-y:auto; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* CARD */
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:14px; cursor:pointer;
+    position:relative; overflow:hidden;
+  }
+  .card::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  }
+  .card.good::before { background:var(--good); }
+  .card.thread::before { background:var(--purple); }
+  .card.replied::before { background:var(--accent2); }
+  .card:active { opacity:0.75; }
+
+  .card-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .avatar {
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:0.85rem; flex-shrink:0;
+  }
+  .card-info { flex:1; min-width:0; }
+  .card-author { font-weight:600; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card-sub { font-size:0.67rem; color:var(--muted); margin-top:2px; }
+
+  .ctag {
+    font-size:0.58rem; padding:3px 7px; border-radius:4px;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.04em; flex-shrink:0;
+  }
+  .ctag.good { background:#1a3022; color:var(--good); }
+  .ctag.thread { background:#221a35; color:var(--purple); }
+  .ctag.replied { background:#1a2535; color:var(--accent2); }
+
+  .card-orig { font-size:0.8rem; line-height:1.6; color:#bbb; margin-bottom:6px; }
+  .card-ja { font-size:0.8rem; line-height:1.6; color:var(--text); font-family:'Noto Sans JP',sans-serif; font-weight:300; }
+  .ja-label { font-size:0.62rem; color:var(--muted); margin-bottom:3px; }
+
+  .card-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+  .mbtn {
+    background:var(--surface2); border:1px solid var(--border);
+    color:var(--muted); padding:6px 10px; border-radius:7px;
+    font-size:0.7rem; cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .mbtn.acc { color:var(--accent); border-color:var(--accent); }
+  .mbtn.del { color:var(--danger); border-color:transparent; }
+  .mbtn:active { opacity:0.7; }
+
+  /* DETAIL */
+  .back-bar {
+    display:flex; align-items:center; gap:10px;
+    padding:12px 18px; background:var(--surface);
+    border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .back-btn {
+    background:none; border:none; color:var(--accent);
+    font-family:'DM Sans',sans-serif; font-size:0.9rem; cursor:pointer; padding:4px 0;
+  }
+  .detail-scroll {
+    flex:1; overflow-y:auto; padding:14px;
+    display:flex; flex-direction:column; gap:12px;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .sbox {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:14px;
+  }
+  .slabel {
+    font-size:0.62rem; text-transform:uppercase;
+    letter-spacing:0.1em; color:var(--muted);
+    margin-bottom:10px; display:flex; align-items:center; gap:6px;
+  }
+  .ai-dot {
+    width:6px; height:6px; background:var(--accent);
+    border-radius:50%; animation:pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .bubble {
+    background:var(--surface2); border-radius:10px;
+    padding:12px; font-size:0.84rem; line-height:1.7; color:#ddd;
+  }
+  .bubble.ja { font-family:'Noto Sans JP',sans-serif; font-weight:300; color:var(--text); }
+
+  .gen-btn {
+    width:100%; background:none; border:1px solid var(--accent);
+    color:var(--accent); padding:11px; border-radius:10px;
+    font-family:'DM Sans',sans-serif; font-size:0.84rem;
+    font-weight:500; cursor:pointer;
+  }
+  .gen-btn:active { background:var(--accent); color:var(--bg); }
+  .gen-btn:disabled { opacity:0.5; }
+
+  .reply-area {
+    width:100%; background:var(--surface2);
+    border:1px solid var(--border); border-radius:10px;
+    padding:12px; font-family:'DM Sans',sans-serif;
+    font-size:0.85rem; color:var(--text);
+    resize:none; min-height:100px; line-height:1.6; margin-top:10px;
+  }
+  .reply-area:focus { outline:none; border-color:var(--accent); }
+
+  .send-btn {
+    width:100%; background:linear-gradient(135deg,var(--accent),#e8c99e);
+    border:none; color:var(--bg); padding:14px; border-radius:12px;
+    font-family:'DM Sans',sans-serif; font-weight:700;
+    font-size:0.9rem; cursor:pointer; margin-top:8px;
+  }
+  .send-btn:active { opacity:0.8; }
+
+  .thread-item {
+    border-left:2px solid var(--purple);
+    padding-left:12px; margin-top:10px;
+  }
+  .thread-author { font-size:0.75rem; font-weight:600; color:var(--purple); margin-bottom:4px; }
+  .thread-text { font-size:0.8rem; line-height:1.6; color:#bbb; }
+  .thread-ja { font-size:0.78rem; color:var(--text); font-family:'Noto Sans JP',sans-serif; font-weight:300; margin-top:4px; }
+
+  /* PROCESSING */
+  .proc-overlay {
+    position:fixed; inset:0; background:rgba(13,13,15,0.92);
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:500; gap:16px;
+  }
+  .proc-overlay.show { display:flex; }
+  .spinner {
+    width:44px; height:44px; border:3px solid var(--border);
+    border-top-color:var(--accent); border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .proc-text { font-size:0.9rem; color:var(--muted); }
+  .proc-sub { font-size:0.72rem; color:var(--border); }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:20px; padding:9px 18px; font-size:0.8rem;
+    white-space:nowrap; display:none; z-index:999;
+  }
+
+  .empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty-state .ei { font-size:2.5rem; margin-bottom:10px; }
+
+  @keyframes dots { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+  .ldots::after { content:''; animation:dots 1.2s infinite; }
+</style>
+</head>
+<body>
+
+<!-- PROCESSING OVERLAY -->
+<div class="proc-overlay" id="procOverlay">
+  <div class="spinner"></div>
+  <div class="proc-text">AIがコメントを分析中<span class="ldots"></span></div>
+  <div class="proc-sub">有害コメントは自動で墓場へ 🪦</div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen active" id="setupScreen">
+  <div class="setup-logo">✦ Cherry's<br>Comment Studio</div>
+  <div class="setup-sub">APIキーを入力してスタート！<br>キーはあなたのブラウザにのみ保存されます。</div>
+
+  <div class="setup-box">
+    <div class="setup-label">Anthropic APIキー（Claude用）</div>
+    <input class="setup-input" type="password" id="anthropicKey" placeholder="sk-ant-..." />
+
+    <div class="setup-label">YouTube Data API v3キー</div>
+    <input class="setup-input" type="password" id="youtubeKey" placeholder="AIza..." />
+
+    <div class="setup-label">あなたのYouTube チャンネルID</div>
+    <input class="setup-input" type="text" id="channelId" placeholder="UCxxxxxxxxxxxxxxxx" />
+
+    <button class="setup-btn" onclick="startApp()">スタート ✦</button>
+  </div>
+
+  <div class="setup-note">
+    🔒 キーはブラウザのlocalStorageのみに保存。<br>外部サーバーには一切送信されません。
+  </div>
+</div>
+
+<!-- LIST SCREEN -->
+<div class="screen" id="listScreen">
+  <div class="top-bar">
+    <div class="top-row">
+      <div class="logo">✦ Comment Studio</div>
+      <button class="sync-btn" onclick="syncComments()">↺ 同期</button>
+    </div>
+    <div class="stat-row">
+      <div class="pill"><b id="s-total">0</b> total</div>
+      <div class="pill g"><b id="s-good">0</b> 素敵</div>
+      <div class="pill p"><b id="s-thread">0</b> スレッド</div>
+      <div class="pill d"><b id="s-tomb">0</b> 墓場</div>
+      <div class="pill b"><b id="s-replied">0</b> 返信済</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('good',this)">
+      <span class="ti">✨</span>素敵
+      <span class="badge" id="t-good">0</span>
+    </button>
+    <button class="tab" onclick="setTab('thread',this)">
+      <span class="ti">🔁</span>スレッド
+      <span class="badge" id="t-thread">0</span>
+    </button>
+    <button class="tab" onclick="setTab('replied',this)">
+      <span class="ti">✅</span>返信済
+    </button>
+    <button class="tab" onclick="setTab('tomb',this)">
+      <span class="ti">🪦</span>墓場
+      <span class="badge d" id="t-tomb">0</span>
+    </button>
+  </div>
+
+  <div class="list-scroll" id="commentList"></div>
+</div>
+
+<!-- DETAIL SCREEN -->
+<div class="screen" id="detailScreen">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goBack()">← 戻る</button>
+    <span style="font-size:0.8rem;color:var(--muted)" id="detailAuthor"></span>
+  </div>
+  <div class="detail-scroll" id="detailBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const COLORS = [
+  ['#1a2a3a','#7eb8c8'],['#2a1a3a','#c87eb8'],['#1a2e22','#7ec8a0'],
+  ['#3a2a1a','#c8a97e'],['#2e1a1a','#c87e7e'],['#1e2e1a','#a0c87e'],
+  ['#1a1a3a','#7e7ec8'],['#2a2a1a','#c8c87e']
+];
+
+let ANTHROPIC_KEY = '';
+let YOUTUBE_KEY = '';
+let CHANNEL_ID = '';
+let comments = [];
+let currentTab = 'good';
+let aiCache = {};
+
+// ── SETUP ──
+function startApp() {
+  const ak = document.getElementById('anthropicKey').value.trim();
+  const yk = document.getElementById('youtubeKey').value.trim();
+  const ch = document.getElementById('channelId').value.trim();
+
+  if (!ak || !yk || !ch) { showToast('全て入力してね！'); return; }
+
+  ANTHROPIC_KEY = ak;
+  YOUTUBE_KEY = yk;
+  CHANNEL_ID = ch;
+
+  // Save to localStorage
+  localStorage.setItem('cs_ak', ak);
+  localStorage.setItem('cs_yk', yk);
+  localStorage.setItem('cs_ch', ch);
+
+  document.getElementById('setupScreen').classList.remove('active');
+  document.getElementById('listScreen').classList.add('active');
+
+  syncComments();
+}
+
+// Load saved keys on start
+window.addEventListener('load', () => {
+  const ak = localStorage.getItem('cs_ak');
+  const yk = localStorage.getItem('cs_yk');
+  const ch = localStorage.getItem('cs_ch');
+  if (ak && yk && ch) {
+    ANTHROPIC_KEY = ak;
+    YOUTUBE_KEY = yk;
+    CHANNEL_ID = ch;
+    document.getElementById('anthropicKey').value = ak;
+    document.getElementById('youtubeKey').value = yk;
+    document.getElementById('channelId').value = ch;
+    document.getElementById('setupScreen').classList.remove('active');
+    document.getElementById('listScreen').classList.add('active');
+    syncComments();
+  }
+});
+
+// ── YOUTUBE API ──
+async function fetchYouTubeComments() {
+  // Get recent videos
+  const videosResp = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CHANNEL_ID}&maxResults=10&order=date&type=video&key=${YOUTUBE_KEY}`
+  );
+  const videosData = await videosResp.json();
+  if (!videosData.items) throw new Error('動画取得失敗: ' + JSON.stringify(videosData));
+
+  const videoIds = videosData.items.map(v => v.id.videoId).join(',');
+
+  // Get video titles
+  const titlesResp = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoIds}&key=${YOUTUBE_KEY}`
+  );
+  const titlesData = await titlesResp.json();
+  const titleMap = {};
+  titlesData.items?.forEach(v => { titleMap[v.id] = v.snippet.title; });
+
+  // Get comments for each video
+  let allComments = [];
+  for (const videoId of videosData.items.map(v => v.id.videoId)) {
+    try {
+      const commResp = await fetch(
+        `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&videoId=${videoId}&maxResults=50&key=${YOUTUBE_KEY}`
+      );
+      const commData = await commResp.json();
+      if (!commData.items) continue;
+
+      for (const item of commData.items) {
+        const top = item.snippet.topLevelComment.snippet;
+        const threads = item.replies?.comments?.map(r => ({
+          author: r.snippet.authorDisplayName,
+          text: r.snippet.textDisplay,
+        })) || [];
+
+        allComments.push({
+          id: item.id,
+          author: top.authorDisplayName,
+          text: top.textDisplay.replace(/<[^>]*>/g, ''),
+          video: titleMap[videoId] || videoId,
+          time: timeAgo(top.publishedAt),
+          publishedAt: top.publishedAt,
+          status: 'new',
+          threads: threads,
+          likeCount: top.likeCount || 0,
+        });
+      }
+    } catch(e) { console.warn('comment fetch error', e); }
+  }
+
+  return allComments;
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs/24)}d ago`;
+}
+
+// ── SYNC ──
+async function syncComments() {
+  showProc('YouTubeからコメントを取得中<span class="ldots"></span>', 'チャンネルに接続しています...');
+
+  try {
+    const fetched = await fetchYouTubeComments();
+
+    // Merge with existing (preserve status)
+    const existingMap = {};
+    comments.forEach(c => { existingMap[c.id] = c; });
+
+    const merged = fetched.map(c => {
+      if (existingMap[c.id]) {
+        return { ...c, status: existingMap[c.id].status };
+      }
+      return c;
+    });
+
+    // AI filter
+    showProc('AIがコメントを分析中<span class="ldots"></span>', '有害コメントは自動で墓場へ 🪦');
+    comments = await aiFilterComments(merged);
+
+    // AI process good ones
+    showProc('翻訳・返信案を生成中<span class="ldots"></span>', 'しばらくお待ちください...');
+    await processGoodComments();
+
+    hideProc();
+    renderList();
+    showToast(`✓ ${comments.length}件取得完了！`);
+  } catch(e) {
+    hideProc();
+    showToast('エラー: ' + e.message);
+    console.error(e);
+  }
+}
+
+// ── AI FILTER ──
+async function aiFilterComments(rawComments) {
+  const results = [];
+
+  for (const c of rawComments) {
+    // Skip already classified
+    if (c.status !== 'new') { results.push(c); continue; }
+
+    try {
+      const verdict = await callAI(
+        `You are a YouTube comment moderator for Cherry, a Japanese woman who makes English videos about solo life in Japan and composes her own music.
+
+Classify this comment into ONE category:
+- GOOD: genuine, kind, curious, supportive comments
+- TOMB: hateful, racist, rude, spam, unsolicited advice/coaching, intellectual showing-off/condescending, harassment
+
+Comment: "${c.text.slice(0, 300)}"
+
+Reply with ONLY one word: GOOD or TOMB`,
+        100
+      );
+
+      c.status = verdict.trim().toUpperCase().includes('TOMB') ? 'tomb' : 'good';
+
+      // Mark as thread if has replies
+      if (c.status === 'good' && c.threads.length > 0) {
+        c.status = 'thread';
+      }
+    } catch(e) {
+      c.status = 'good'; // default to good on error
+    }
+
+    results.push(c);
+  }
+
+  return results;
+}
+
+// ── AI PROCESS (translate + reply) ──
+async function processGoodComments() {
+  const toProcess = comments.filter(c => (c.status === 'good' || c.status === 'thread') && !aiCache[c.id]);
+
+  for (const c of toProcess) {
+    const cache = {};
+
+    try {
+      cache.jaText = await callAI(
+        `Translate this YouTube comment into casual, friendly Japanese (タメ口, no keigo, warm). Output ONLY the translation.\n\n"${c.text.slice(0,400)}"`,
+        300
+      );
+    } catch(e) { cache.jaText = '（翻訳エラー）'; }
+
+    try {
+      cache.reply = await callAI(
+        `You are helping Cherry, a Japanese woman making English YouTube videos about solo life in Japan. She composes her own music. Warm, genuine, talks to viewers like close friends.
+
+Write a SHORT warm English reply (2-3 sentences max). Be specific to what they said. Natural, not corporate.
+
+Comment from ${c.author}: "${c.text.slice(0,400)}"
+Video: "${c.video}"
+
+Reply as Cherry:`,
+        200
+      );
+    } catch(e) { cache.reply = 'Thank you so much for this! 🌸'; }
+
+    try {
+      cache.replyJa = await callAI(
+        `Translate into casual Japanese (タメ口). Output ONLY the translation.\n\n"${cache.reply}"`,
+        200
+      );
+    } catch(e) { cache.replyJa = '（翻訳エラー）'; }
+
+    // Thread translations
+    cache.threadJa = [];
+    for (const t of (c.threads || [])) {
+      try {
+        const ja = await callAI(
+          `Translate into casual friendly Japanese (タメ口). Output ONLY the translation.\n\n"${t.text.slice(0,300)}"`,
+          200
+        );
+        cache.threadJa.push(ja);
+      } catch(e) { cache.threadJa.push('（翻訳エラー）'); }
+    }
+
+    aiCache[c.id] = cache;
+  }
+}
+
+// ── CLAUDE API ──
+async function callAI(prompt, maxTokens = 500) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.find(b => b.type === 'text')?.text?.trim() || '';
+}
+
+// ── RENDER ──
+function colorFor(name) {
+  let h = 0;
+  for (let c of name) h = (h + c.charCodeAt(0)) % COLORS.length;
+  return COLORS[h];
+}
+
+function renderList() {
+  const el = document.getElementById('commentList');
+  const list = comments.filter(c => c.status === currentTab);
+
+  if (!list.length) {
+    const msgs = { good:'素敵なコメントはまだないよ！', thread:'スレッドはまだないよ！', replied:'返信済みはまだないよ！', tomb:'墓場は空っぽ 🕊️' };
+    el.innerHTML = `<div class="empty-state"><div class="ei">${currentTab==='tomb'?'🪦':'✨'}</div><p>${msgs[currentTab]}</p></div>`;
+    updateStats(); return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const [bg, fg] = colorFor(c.author);
+    const cache = aiCache[c.id];
+    const hasThread = c.threads && c.threads.length > 0;
+    const tagLabels = { good:'✨ 素敵', thread:'🔁 スレッド', replied:'✅ 返信済', tomb:'🪦' };
+    const tagClass = c.status === 'replied' ? 'replied' : c.status === 'thread' ? 'thread' : 'good';
+
+    let content = '';
+    if (c.status !== 'tomb') {
+      content = `
+        <div class="card-orig">${c.text.length > 100 ? c.text.slice(0,100)+'…' : c.text}</div>
+        <div class="ja-label">🇯🇵 日本語</div>
+        <div class="card-ja">${cache ? cache.jaText : '<span style="color:var(--muted);font-style:italic">翻訳中…</span>'}</div>
+      `;
+    } else {
+      content = `<div class="card-orig" style="color:var(--muted);font-style:italic">このコメントは自動で墓場送りになりました 🪦</div>`;
+    }
+
+    const btns = c.status !== 'tomb' ? `
+      <button class="mbtn acc" onclick="event.stopPropagation();openDetail('${c.id}')">✦ 返信する</button>
+      <button class="mbtn" onclick="event.stopPropagation();markReplied('${c.id}')">✓ 完了</button>
+      <button class="mbtn del" onclick="event.stopPropagation();deleteComment('${c.id}')">🗑</button>
+    ` : `<button class="mbtn del" onclick="event.stopPropagation();deleteComment('${c.id}')">完全に削除</button>`;
+
+    return `
+    <div class="card ${tagClass}" onclick="${c.status!=='tomb'?`openDetail('${c.id}')`:''}">
+      <div class="card-head">
+        <div class="avatar" style="background:${bg};color:${fg}">${c.author[0]?.toUpperCase()||'?'}</div>
+        <div class="card-info">
+          <div class="card-author">${c.author}</div>
+          <div class="card-sub">📹 ${c.video.length>30?c.video.slice(0,30)+'…':c.video} · ${c.time}${hasThread?` · 💬 ${c.threads.length}件`:''}</div>
+        </div>
+        <span class="ctag ${tagClass}">${tagLabels[c.status] || tagLabels[tagClass]}</span>
+      </div>
+      ${content}
+      <div class="card-btns">${btns}</div>
+    </div>`;
+  }).join('');
+
+  updateStats();
+}
+
+function openDetail(id) {
+  const c = comments.find(x => x.id === id);
+  if (!c) return;
+  const cache = aiCache[id] || {};
+
+  document.getElementById('detailAuthor').textContent = c.author;
+  document.getElementById('listScreen').classList.remove('active');
+  document.getElementById('detailScreen').classList.add('active');
+
+  const threadHTML = c.threads?.length ? `
+    <div class="sbox">
+      <div class="slabel">🔁 スレッドの返信</div>
+      ${c.threads.map((t, i) => `
+        <div class="thread-item">
+          <div class="thread-author">@${t.author}</div>
+          <div class="thread-text">${t.text}</div>
+          <div class="thread-ja">${cache.threadJa?.[i] || '翻訳中…'}</div>
+        </div>
+      `).join('')}
+    </div>` : '';
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="sbox">
+      <div class="slabel">💬 原文</div>
+      <div class="bubble">${c.text}</div>
+      <div style="font-size:0.7rem;color:var(--muted);margin-top:8px">📹 ${c.video} · ${c.time}</div>
+    </div>
+    <div class="sbox">
+      <div class="slabel">🇯🇵 日本語訳</div>
+      <div class="bubble ja">${cache.jaText || '翻訳中…'}</div>
+    </div>
+    ${threadHTML}
+    <div class="sbox">
+      <div class="slabel"><div class="ai-dot"></div> 返信案（英語）</div>
+      <div class="bubble" id="replyEn">${cache.reply || '生成中…'}</div>
+    </div>
+    <div class="sbox">
+      <div class="slabel">🇯🇵 返信案（日本語）</div>
+      <div class="bubble ja" id="replyJa">${cache.replyJa || '生成中…'}</div>
+    </div>
+    <div class="sbox">
+      <div class="slabel">✏️ 返信を編集して送信</div>
+      <button class="gen-btn" id="regenBtn" onclick="regenReply('${id}')">↺ 返信案を再生成</button>
+      <textarea class="reply-area" id="replyArea">${cache.reply || ''}</textarea>
+      <button class="send-btn" onclick="sendReply('${id}')">YouTubeに返信を送る ↗</button>
+    </div>
+    <div class="sbox" style="display:flex;gap:8px">
+      <button class="mbtn" style="flex:1;padding:10px;text-align:center" onclick="markReplied('${id}',true)">✓ 返信済みにする</button>
+      <button class="mbtn del" style="flex:1;padding:10px;text-align:center" onclick="deleteComment('${id}',true)">🗑 削除</button>
+    </div>
+  `;
+}
+
+async function regenReply(id) {
+  const c = comments.find(x => x.id === id);
+  const btn = document.getElementById('regenBtn');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '生成中…';
+
+  try {
+    const reply = await callAI(
+      `You are helping Cherry, a Japanese woman making English YouTube videos about solo life in Japan. She composes her own music. Warm, genuine, close-friend tone.\n\nShort warm English reply (2-3 sentences). Specific, natural.\n\nComment: "${c.text.slice(0,400)}"\nVideo: "${c.video}"\n\nReply as Cherry:`,
+      200
+    );
+    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Output ONLY the translation.\n\n"${reply}"`, 200);
+
+    if (aiCache[id]) { aiCache[id].reply = reply; aiCache[id].replyJa = replyJa; }
+    document.getElementById('replyEn').textContent = reply;
+    document.getElementById('replyJa').textContent = replyJa;
+    document.getElementById('replyArea').value = reply;
+  } catch(e) { showToast('エラーが発生しました'); }
+
+  btn.disabled = false; btn.textContent = '↺ 返信案を再生成';
+}
+
+async function sendReply(id) {
+  const area = document.getElementById('replyArea');
+  if (!area?.value.trim()) { showToast('返信内容を入力してね！'); return; }
+
+  const c = comments.find(x => x.id === id);
+  // YouTube comment insert via API
+  try {
+    const resp = await fetch('https://www.googleapis.com/youtube/v3/comments?part=snippet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${YOUTUBE_KEY}` },
+      body: JSON.stringify({
+        snippet: {
+          parentId: id,
+          textOriginal: area.value.trim()
+        }
+      })
+    });
+    // Note: This requires OAuth, not just API key
+    markReplied(id, true);
+    showToast('✓ 返信済みにしたよ！（YouTube直接投稿はOAuth設定後に有効になります）');
+  } catch(e) {
+    // Copy to clipboard as fallback
+    navigator.clipboard?.writeText(area.value.trim());
+    markReplied(id, true);
+    showToast('✓ クリップボードにコピーしたよ！YouTubeに貼り付けてね');
+  }
+}
+
+function markReplied(id, goBackAfter) {
+  const c = comments.find(x => x.id === id);
+  if (c) c.status = 'replied';
+  if (goBackAfter) goBack(); else renderList();
+}
+
+function deleteComment(id, goBackAfter) {
+  comments = comments.filter(x => x.id !== id);
+  if (goBackAfter) goBack(); else renderList();
+  showToast('削除したよ 🗑');
+}
+
+function goBack() {
+  document.getElementById('detailScreen').classList.remove('active');
+  document.getElementById('listScreen').classList.add('active');
+  renderList();
+}
+
+function setTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function updateStats() {
+  const good = comments.filter(c => c.status==='good').length;
+  const thread = comments.filter(c => c.status==='thread').length;
+  const tomb = comments.filter(c => c.status==='tomb').length;
+  const replied = comments.filter(c => c.status==='replied').length;
+  const total = comments.length;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-good').textContent = good;
+  document.getElementById('s-thread').textContent = thread;
+  document.getElementById('s-tomb').textContent = tomb;
+  document.getElementById('s-replied').textContent = replied;
+  document.getElementById('t-good').textContent = good;
+  document.getElementById('t-thread').textContent = thread;
+  document.getElementById('t-tomb').textContent = tomb;
+}
+
+function showProc(text, sub) {
+  document.getElementById('procOverlay').classList.add('show');
+  document.querySelector('.proc-text').innerHTML = text;
+  document.querySelector('.proc-sub').textContent = sub;
+}
+function hideProc() { document.getElementById('procOverlay').classList.remove('show'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.display='none', 3000);
+}
+</script>
+</body>
+</html>
