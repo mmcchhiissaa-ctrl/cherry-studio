@@ -220,7 +220,7 @@
 
   <div class="img-upload-area" id="uploadArea">
     <input type="file" accept="image/*" id="imgInput" onchange="onImageSelect(event)" />
-    <div class="img-upload-label">📷 スクショをタップしてアップロード<br><span>テキストと絵文字を自動抽出します</span></div>
+    <div class="img-upload-label">📷 スクショをアップロード or Ctrl+V で貼り付け<br><span>テキストと絵文字を自動抽出します</span></div>
   </div>
 
   <div class="img-preview" id="imgPreview">
@@ -335,6 +335,30 @@ window.addEventListener('load', () => {
     document.getElementById('apiKey').value = saved;
     document.getElementById('saveBtn').textContent = '保存済 ✓';
     document.getElementById('saveBtn').classList.add('saved');
+  }
+});
+
+// Ctrl+V でクリップボードから画像を貼り付け
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (!file) continue;
+      currentImageType = file.type || 'image/jpeg';
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target.result;
+        currentImageB64 = result.split(',')[1];
+        document.getElementById('previewImg').src = result;
+        document.getElementById('imgPreview').style.display = 'block';
+        document.getElementById('extractBtn').style.display = 'block';
+        document.getElementById('uploadArea').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+      break;
+    }
   }
 });
 
