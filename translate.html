@@ -37,15 +37,9 @@
   .key-row { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; }
 
   input[type="password"] {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.82rem;
-    color: var(--text);
-    width: 100%;
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; color: var(--text);
   }
   input:focus { outline: none; border-color: var(--accent); }
 
@@ -67,6 +61,43 @@
     font-size: 0.88rem; color: var(--text); resize: vertical; line-height: 1.7; margin-bottom: 12px;
   }
   textarea:focus { outline: none; border-color: var(--accent); }
+  textarea.editable { border-color: #3a3a45; }
+  textarea.editable:focus { border-color: var(--accent); }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area {
+    border: 1px dashed var(--border); border-radius: 10px;
+    padding: 16px; text-align: center; cursor: pointer;
+    margin-bottom: 12px; transition: border-color 0.2s;
+    position: relative;
+  }
+  .img-upload-area:hover { border-color: var(--accent); }
+  .img-upload-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .img-upload-label { font-size: 0.82rem; color: var(--muted); }
+  .img-upload-label span { color: var(--accent); }
+
+  .img-preview {
+    display: none; margin-bottom: 12px;
+    border-radius: 8px; overflow: hidden; position: relative;
+  }
+  .img-preview img { width: 100%; border-radius: 8px; max-height: 200px; object-fit: cover; }
+  .img-preview-clear {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.6); border: none; color: var(--text);
+    border-radius: 50%; width: 24px; height: 24px; cursor: pointer;
+    font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
+  }
+
+  .extract-btn {
+    width: 100%; background: none; border: 1px solid var(--purple, #a07ec8);
+    color: var(--purple, #a07ec8); padding: 10px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+    cursor: pointer; margin-bottom: 12px; transition: all 0.15s;
+    display: none;
+  }
+  .extract-btn:hover { background: var(--purple, #a07ec8); color: #0d0d0f; }
 
   .go-btn {
     width: 100%; background: linear-gradient(135deg, var(--accent), #e8c99e);
@@ -85,13 +116,14 @@
   .result-label {
     font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
     color: var(--muted); margin-bottom: 10px;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
 
   .copy-btn {
     background: none; border: 1px solid var(--border); color: var(--muted);
     padding: 3px 10px; border-radius: 5px; font-size: 0.65rem;
     cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    flex-shrink: 0;
   }
   .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
   .copy-btn.done { color: var(--good); border-color: var(--good); }
@@ -146,7 +178,6 @@
   }
   .step-dot.active { background: var(--accent); animation: pulse 1s infinite; }
   .step-dot.done { background: var(--good); animation: none; }
-
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   .error {
@@ -163,20 +194,44 @@
   }
 
   #results { display: none; }
+
+  .section-divider {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .section-divider span { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+  .section-divider::before, .section-divider::after {
+    content: ''; flex: 1; border-top: 1px solid var(--border);
+  }
 </style>
 </head>
 <body>
 <div class="container">
 
   <div class="logo">✦ Cherry's Translation Tool</div>
-  <div class="sub">コメント貼り付け → 言語自動検出 → 返信案を生成</div>
+  <div class="sub">コメント貼り付け or スクショ → 言語検出 → 返信案生成</div>
 
   <div class="key-row">
     <input type="password" id="apiKey" placeholder="Anthropic API Key (sk-ant-...)" />
     <button class="save-btn" id="saveBtn" onclick="saveKey()">保存</button>
   </div>
 
-  <label>YouTubeコメントを貼り付け</label>
+  <!-- IMAGE UPLOAD -->
+  <div class="section-divider"><span>スクショからテキスト抽出（スマホ向け）</span></div>
+
+  <div class="img-upload-area" id="uploadArea">
+    <input type="file" accept="image/*" id="imgInput" onchange="onImageSelect(event)" />
+    <div class="img-upload-label">📷 スクショをタップしてアップロード<br><span>テキストと絵文字を自動抽出します</span></div>
+  </div>
+
+  <div class="img-preview" id="imgPreview">
+    <img id="previewImg" src="" alt="preview" />
+    <button class="img-preview-clear" onclick="clearImage()">✕</button>
+  </div>
+
+  <button class="extract-btn" id="extractBtn" onclick="extractText()">📝 テキストを抽出してコメント欄に入れる</button>
+
+  <div class="section-divider"><span>コメントをここに貼り付け</span></div>
+
   <textarea id="commentInput" rows="5" placeholder="Paste YouTube comment here..."></textarea>
 
   <button class="go-btn" id="goBtn" onclick="processComment()">✦ 言語検出 + 返信案を生成</button>
@@ -205,23 +260,29 @@
     <div class="result-box">
       <div class="result-label">
         🇯🇵 日本語訳（確認用）
-        <button class="copy-btn" onclick="copyEl('jaText', this)">コピー</button>
+        <button class="copy-btn" onclick="copyArea('jaText', this)">コピー</button>
       </div>
       <div class="result-text ja" id="jaText"></div>
     </div>
 
+    <!-- ENGLISH REPLY — now editable textarea -->
     <div class="result-box">
       <div class="result-label">
         <span>✦ 返信案 <span id="replyLangLabel" style="color:var(--accent);"></span></span>
-        <button class="copy-btn" onclick="copyEl('replyText', this)">コピー</button>
+        <button class="copy-btn" onclick="copyArea('replyEnInput', this)">コピー</button>
       </div>
-      <div class="result-text" id="replyText"></div>
+      <textarea class="editable" id="replyEnInput" rows="4" placeholder="返信案がここに表示されます（直接編集できます）"></textarea>
+      <button class="sync-btn" onclick="syncEnToJa()">↺ 英語を編集したら日本語に同期</button>
     </div>
 
+    <!-- JAPANESE REPLY — editable -->
     <div class="result-box">
-      <div class="result-label">✏️ 返信案（日本語）— 編集可能</div>
-      <textarea id="replyJaInput" rows="4"></textarea>
-      <button class="sync-btn" onclick="syncToOriginal()">↺ 日本語を編集したら元の言語に同期</button>
+      <div class="result-label">
+        ✏️ 返信案（日本語）— 編集可能
+        <button class="copy-btn" onclick="copyArea('replyJaInput', this)">コピー</button>
+      </div>
+      <textarea class="editable" id="replyJaInput" rows="4"></textarea>
+      <button class="sync-btn" onclick="syncJaToEn()">↺ 日本語を編集したら元の言語に同期</button>
     </div>
 
     <button class="reset-btn" onclick="resetAll()">↩ リセット</button>
@@ -232,16 +293,17 @@
 <script>
 const SYSTEM = `You are helping Cherry, a 55-year-old Japanese woman who makes English YouTube videos about solo life in Tokyo. Authentic, intellectual, witty, punk rock spirit. Has a Spanish partner of 10+ years but keeps channel focused on solo life.
 
-REPLY RULES:
+REPLY RULES — follow strictly:
 - Tone: warm, light, elegant, never pushy, adult wit
-- Match commenter's greeting style
+- Match commenter's greeting style exactly
 - Emoji: sparingly, 🤭 only for self-deprecating moments
 - NEVER use: "It means a lot to me", "Your words mean a lot", "I believe", "Thank you for being here", em dash (—), commenter's name, thoughtful/insightful/meaningful as compliments
 - No paragraph breaks in replies
 - Simple compliment → just "Thank you 😊"
 - Always reply in same language as commenter unless told otherwise
 - If someone hopes she finds love → mention wonderful 10+ year partner
-- No politics/religion/ideology`;
+- No politics/religion/ideology
+- Do NOT wrap reply in quotation marks`;
 
 const LANGS = [
   {code:'en',label:'English',flag:'🇬🇧'},
@@ -260,13 +322,16 @@ const LANGS = [
   {code:'pl',label:'Polski',flag:'🇵🇱'},
 ];
 
-let currentLang = {code:'en', label:'English', flag:'🇬🇧'};
+let currentLang = {code:'en',label:'English',flag:'🇬🇧'};
 let currentComment = '';
 let apiKey = '';
+let currentImageB64 = null;
+let currentImageType = 'image/jpeg';
 
 window.addEventListener('load', () => {
   const saved = localStorage.getItem('cherry_ak');
   if (saved) {
+    apiKey = saved;
     document.getElementById('apiKey').value = saved;
     document.getElementById('saveBtn').textContent = '保存済 ✓';
     document.getElementById('saveBtn').classList.add('saved');
@@ -276,12 +341,89 @@ window.addEventListener('load', () => {
 function saveKey() {
   const k = document.getElementById('apiKey').value.trim();
   if (!k) return;
+  apiKey = k;
   localStorage.setItem('cherry_ak', k);
   const btn = document.getElementById('saveBtn');
   btn.textContent = '保存済 ✓';
   btn.classList.add('saved');
 }
 
+// IMAGE UPLOAD
+function onImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentImageType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const result = ev.target.result;
+    currentImageB64 = result.split(',')[1];
+    document.getElementById('previewImg').src = result;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('extractBtn').style.display = 'block';
+    document.getElementById('uploadArea').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  currentImageB64 = null;
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('extractBtn').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('imgInput').value = '';
+}
+
+async function extractText() {
+  apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { showError('APIキーを入力してね！'); return; }
+  if (!currentImageB64) return;
+
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  btn.textContent = '抽出中...';
+
+  try {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':apiKey},
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: currentImageB64 ? currentImageType : 'image/jpeg',
+                data: currentImageB64
+              }
+            },
+            {
+              type: 'text',
+              text: 'Extract only the YouTube comment text from this screenshot. Include all emoji exactly as they appear. Output ONLY the comment text, nothing else. No explanation, no quotes.'
+            }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const extracted = data.content?.find(b=>b.type==='text')?.text?.trim() || '';
+    document.getElementById('commentInput').value = extracted;
+    clearImage();
+    showError('');
+    hideError();
+  } catch(e) {
+    showError('抽出エラー: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📝 テキストを抽出してコメント欄に入れる';
+}
+
+// AI CALL
 async function callAI(msg, maxTokens) {
   const r = await fetch('/api/claude', {
     method:'POST',
@@ -295,14 +437,14 @@ async function callAI(msg, maxTokens) {
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error.message);
-  return d.content?.find(b=>b.type==='text')?.text?.trim() || '';
+  return (d.content?.find(b=>b.type==='text')?.text?.trim() || '').replace(/^["「]|["」]$/g,'').trim();
 }
 
 function setStep(n, label) {
   document.getElementById('loadingLabel').textContent = label;
   for (let i=1;i<=4;i++) {
     const d = document.getElementById('dot'+i);
-    if(d) d.className = 'step-dot'+(i<n?' done':i===n?' active':'');
+    if(d) d.className='step-dot'+(i<n?' done':i===n?' active':'');
   }
 }
 
@@ -326,8 +468,8 @@ async function processComment() {
   try {
     setStep(1, '言語を検出中...');
     const langRaw = await callAI(
-      `Detect the language of this comment. Reply ONLY with JSON: {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
-Use es-419 for Latin American Spanish. Note field for ambiguous cases (e.g. "possibly Russian or Ukrainian").
+      `Detect the language of this comment. Reply ONLY with JSON (no markdown): {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
+Use es-419 for Latin American Spanish. Note field for ambiguous cases.
 Comment: "${currentComment}"`, 150
     );
     try {
@@ -335,22 +477,22 @@ Comment: "${currentComment}"`, 150
       currentLang = parsed;
     } catch(e) {}
 
-    const conf = currentLang.confidence === 'high' ? '確実' : currentLang.confidence === 'medium' ? 'おそらく' : '不明';
+    const conf = currentLang.confidence==='high'?'確実':currentLang.confidence==='medium'?'おそらく':'不明';
     document.getElementById('langBadge').innerHTML =
-      `<div class="lang-badge">${currentLang.flag} <b>${currentLang.label}</b> <span class="lang-note">${conf}${currentLang.note ? ' — '+currentLang.note : ''}</span></div>`;
+      `<div class="lang-badge">${currentLang.flag} <b>${currentLang.label}</b> <span class="lang-note">${conf}${currentLang.note?' — '+currentLang.note:''}</span></div>`;
     renderLangBtns(currentLang.code);
 
     setStep(2, '日本語に翻訳中...');
-    const ja = await callAI(`Translate into casual friendly Japanese (タメ口, no keigo). Keep emoji as-is. Output ONLY translation.\n\n"${currentComment}"`, 300);
+    const ja = await callAI(`Translate into casual friendly Japanese (タメ口, no keigo). Keep emoji as-is. Output ONLY translation, no quotes.\n\n"${currentComment}"`, 300);
 
     setStep(3, `${currentLang.flag} 返信案を生成中...`);
-    const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules.\n\nComment: "${currentComment}"\n\nReply only:`, 300);
+    const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules. Do NOT add quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 300);
 
     setStep(4, '返信を日本語に変換中...');
-    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation.\n\n"${reply}"`, 300);
+    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${reply}`, 300);
 
     document.getElementById('jaText').textContent = ja;
-    document.getElementById('replyText').textContent = reply;
+    document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
 
@@ -372,9 +514,9 @@ async function switchLang(code, label, flag) {
   document.getElementById('replyLangLabel').textContent = `${flag} 変換中...`;
 
   try {
-    const reply = await callAI(`Write Cherry's reply in ${label}. Follow all rules.\n\nComment: "${currentComment}"\n\nReply only:`, 300);
-    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation.\n\n"${reply}"`, 300);
-    document.getElementById('replyText').textContent = reply;
+    const reply = await callAI(`Write Cherry's reply in ${label}. Follow all rules. No quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 300);
+    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${reply}`, 300);
+    document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${flag} ${label}`;
   } catch(e) { showError('エラー: ' + e.message); }
@@ -383,20 +525,35 @@ async function switchLang(code, label, flag) {
   renderLangBtns(code);
 }
 
-async function syncToOriginal() {
-  const ja = document.getElementById('replyJaInput').value.trim();
-  if (!apiKey || !ja) return;
-  const langLabel = currentLang.label;
+// 英語→日本語に同期
+async function syncEnToJa() {
+  const en = document.getElementById('replyEnInput').value.trim();
+  if (!apiKey || !en) return;
+  const btn = document.querySelector('.sync-btn');
   document.getElementById('replyLangLabel').textContent = '変換中...';
   try {
-    const reply = await callAI(`Translate this Japanese text to ${langLabel}. Keep tone and emoji as-is. Output ONLY translation.\n\n"${ja}"`, 300);
-    document.getElementById('replyText').textContent = reply;
+    const ja = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${en}`, 300);
+    document.getElementById('replyJaInput').value = ja;
   } catch(e) { showError('エラー: ' + e.message); }
-  document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${langLabel}`;
+  document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
 }
 
-function copyEl(id, btn) {
-  navigator.clipboard?.writeText(document.getElementById(id).textContent);
+// 日本語→元言語に同期
+async function syncJaToEn() {
+  const ja = document.getElementById('replyJaInput').value.trim();
+  if (!apiKey || !ja) return;
+  document.getElementById('replyLangLabel').textContent = '変換中...';
+  try {
+    const reply = await callAI(`Translate into ${currentLang.label}. Keep tone and emoji as-is. Output ONLY translation, no quotes.\n\n${ja}`, 300);
+    document.getElementById('replyEnInput').value = reply;
+  } catch(e) { showError('エラー: ' + e.message); }
+  document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
+}
+
+function copyArea(id, btn) {
+  const el = document.getElementById(id);
+  const text = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+  navigator.clipboard?.writeText(text);
   btn.textContent = '✓ コピー完了';
   btn.classList.add('done');
   setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('done'); }, 2000);
@@ -406,6 +563,7 @@ function resetAll() {
   document.getElementById('commentInput').value = '';
   document.getElementById('results').style.display = 'none';
   hideError();
+  clearImage();
   currentComment = '';
 }
 
