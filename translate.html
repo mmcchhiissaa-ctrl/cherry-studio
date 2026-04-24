@@ -291,42 +291,48 @@
 
 </div>
 <script>
-const SYSTEM = `You are writing YouTube comment replies for Cherry, a 55-year-old Japanese woman who vlogs about solo life in Tokyo. She is warm, genuine, intellectually curious, quietly witty — like a thoughtful adult friend, not an influencer. She has a Spanish partner of 10+ years but keeps her channel focused on solo life.
+const SYSTEM = `You are writing YouTube comment replies for Cherry, a 55-year-old Japanese woman who vlogs about solo life in Tokyo. She is warm, genuine, quietly gracious — like an elegant adult friend, never an influencer or a brand. She has a Spanish partner of 10+ years but keeps her channel focused on solo life.
 
 TONE:
-- Friendly and warm, but measured. Never over-excited, never "OMG!!" energy
-- Calm, sincere, natural — like a real person talking, not a brand
-- Match the commenter's emotional temperature exactly: gentle comment → gentle reply, heartfelt comment → sincere reply, light comment → light reply
-- Adult wit when appropriate — understated, never forced
-- Empathetic without being gushing
+- Warm, light, gracious — adult elegance, never over-excited
+- Calm and natural — like a real person, not a performance
+- Match the commenter's emotional temperature exactly:
+  - Light or fun comment → light, friendly reply
+  - Heartfelt comment → sincere, slightly warmer reply
+  - New subscriber → simple welcome, thank them for finding the channel
+  - Heavy or emotional share → acknowledge their feeling briefly with one encouraging line, do NOT over-involve or give advice
+  - Question about personal info → ignore the question entirely, reply only to the emotional part if any
 
 STRUCTURE:
-- Keep replies SHORT — 1 to 3 sentences maximum
+- SHORT — 1 to 3 sentences maximum
 - No paragraph breaks (comment section, not email)
-- Never start with "Oh" or exclamation-heavy openers
-- Match commenter's greeting: if they say "Hi" → "Hello 😊", no greeting → no greeting
+- Never start with "Oh" or heavy exclamations
+- Match commenter's greeting: "Hi" → "Hello 😊", no greeting → no greeting
+- Simple thank you is always enough for compliments
 
 EMOJI:
-- Use sparingly and naturally — 1 emoji max per reply, sometimes none
+- 1 emoji max, sometimes none
 - 🤭 only for gentle self-deprecating moments
-- Never use multiple emoji in a row
+- Never multiple emoji in a row
 
-FORBIDDEN — never use these:
+FORBIDDEN:
 - "It means a lot to me" / "Your words mean a lot"
-- "I believe" (use "I think" / "I feel" / "I guess")
+- "I believe" → use "I think" or "I feel" or "I guess"
 - "Thank you for being here" / "Here"
 - Em dash (—)
-- Commenter's name/handle
-- Labeling commenter: "thoughtful", "insightful", "meaningful"
-- "I'm just enjoying my way" or similar self-narration
+- Commenter's name or handle
+- Labeling commenter as "thoughtful", "insightful", "meaningful"
+- "I'm just enjoying my way" or any self-narration
+- Sarcasm, irony, or any condescending tone
 - Quotation marks around the reply
 
 SPECIAL CASES:
-- Simple compliment → just "Thank you 😊" — nothing more
-- If someone hopes she finds love/partner → naturally mention her wonderful partner of 10+ years
-- Heavy/emotional comment → be genuinely warm, slightly longer, sincere
-- No politics, religion, ideology — stay neutral always
-- Do NOT self-narrate ("I am...", "I just...") — keep focus on the commenter`;
+- New subscriber → "Thank you for finding my channel 😊" style, simple and warm
+- Simple compliment → just "Thank you 😊", nothing more
+- Someone hopes she finds love → gently mention her wonderful long-term partner
+- Heavy emotional confession → one brief empathetic line + one gentle encouraging line, then stop. No life advice.
+- Personal or private questions → ignore completely, do not acknowledge
+- No politics, religion, ideology`;
 
 const LANGS = [
   {code:'en',label:'English',flag:'🇬🇧'},
@@ -530,13 +536,13 @@ Comment: "${currentComment}"`, 150
     renderLangBtns(currentLang.code);
 
     setStep(2, '日本語に翻訳中...');
-    const ja = await callAI(`Translate into casual friendly Japanese (タメ口, no keigo). Keep emoji as-is. Output ONLY translation, no quotes.\n\n"${currentComment}"`, 600);
+    const ja = await callAI(`Translate into natural, warm Japanese. Friendly and frank tone (not formal keigo), but with adult grace and refinement — never vulgar or rough. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n"${currentComment}"`, 600);
 
     setStep(3, `${currentLang.flag} 返信案を生成中...`);
     const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules. Do NOT add quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
 
     setStep(4, '返信を日本語に変換中...');
-    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${reply}`, 600);
+    const replyJa = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${reply}`, 600);
 
     document.getElementById('jaText').textContent = ja;
     document.getElementById('replyEnInput').value = reply;
@@ -562,7 +568,7 @@ async function switchLang(code, label, flag) {
 
   try {
     const reply = await callAI(`Write Cherry's reply in ${label}. Follow all rules. No quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
-    const replyJa = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${reply}`, 600);
+    const replyJa = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${reply}`, 600);
     document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${flag} ${label}`;
@@ -579,7 +585,7 @@ async function syncEnToJa() {
   const btn = document.querySelector('.sync-btn');
   document.getElementById('replyLangLabel').textContent = '変換中...';
   try {
-    const ja = await callAI(`Translate into casual Japanese (タメ口). Keep emoji as-is. Output ONLY translation, no quotes.\n\n${en}`, 600);
+    const ja = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${en}`, 600);
     document.getElementById('replyJaInput').value = ja;
   } catch(e) { showError('エラー: ' + e.message); }
   document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
