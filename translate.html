@@ -309,6 +309,7 @@ STRUCTURE:
 - Never start with "Oh" or heavy exclamations
 - Match commenter's greeting: "Hi" → "Hello 😊", no greeting → no greeting
 - Simple thank you is always enough for compliments
+- Just agree and show appreciation — do NOT over-explain or self-assert
 
 EMOJI:
 - 1 emoji max, sometimes none
@@ -325,6 +326,7 @@ FORBIDDEN:
 - "I'm just enjoying my way" or any self-narration
 - Sarcasm, irony, or any condescending tone
 - Quotation marks around the reply
+- Self-assertive phrases like "But I'm just doing xxx" or "Well, I suppose that's one way to think about it"
 
 SPECIAL CASES:
 - New subscriber → "Thank you for finding my channel 😊" style, simple and warm
@@ -521,8 +523,9 @@ async function processComment() {
   try {
     setStep(1, '言語を検出中...');
     const langRaw = await callAI(
-      `Detect the language of this comment. Reply ONLY with JSON (no markdown): {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
-Use es-419 for Latin American Spanish. Note field for ambiguous cases.
+      `Detect the PRIMARY language of this comment. If it mixes multiple languages, detect the dominant one. Reply ONLY with JSON (no markdown): {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
+Use es-419 for Latin American Spanish. Use note field for mixed language cases (e.g. "Mix of Japanese and English") or ambiguous cases.
+For very short comments or single words/slang, do your best to identify the language.
 Comment: "${currentComment}"`, 150
     );
     try {
@@ -536,13 +539,29 @@ Comment: "${currentComment}"`, 150
     renderLangBtns(currentLang.code);
 
     setStep(2, '日本語に翻訳中...');
-    const ja = await callAI(`Translate into natural, warm Japanese. Friendly and frank tone (not formal keigo), but with adult grace and refinement — never vulgar or rough. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n"${currentComment}"`, 600);
+    const ja = await callAI(`Translate into natural, warm Japanese with these strict rules:
+- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
+- NEVER translate "I" as 俺 — always use 私 or 僕
+- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
+- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
+- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
+- If the comment mixes multiple languages, translate each part naturally into Japanese
+- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
+- Output ONLY the translation, no quotes, no explanation\n\n"${currentComment}"`, 600);
 
     setStep(3, `${currentLang.flag} 返信案を生成中...`);
-    const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules. Do NOT add quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
+    const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules. Do NOT add quotation marks. If the comment contains Japanese words the commenter wrote intentionally (like Konnichiwa, Jya-ne, Genki), you may warmly acknowledge that in the reply.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
 
     setStep(4, '返信を日本語に変換中...');
-    const replyJa = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${reply}`, 600);
+    const replyJa = await callAI(`Translate into natural, warm Japanese with these strict rules:
+- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
+- NEVER translate "I" as 俺 — always use 私 or 僕
+- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
+- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
+- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
+- If the comment mixes multiple languages, translate each part naturally into Japanese
+- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
+- Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${reply}`, 600);
 
     document.getElementById('jaText').textContent = ja;
     document.getElementById('replyEnInput').value = reply;
@@ -568,7 +587,15 @@ async function switchLang(code, label, flag) {
 
   try {
     const reply = await callAI(`Write Cherry's reply in ${label}. Follow all rules. No quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
-    const replyJa = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${reply}`, 600);
+    const replyJa = await callAI(`Translate into natural, warm Japanese with these strict rules:
+- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
+- NEVER translate "I" as 俺 — always use 私 or 僕
+- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
+- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
+- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
+- If the comment mixes multiple languages, translate each part naturally into Japanese
+- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
+- Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${reply}`, 600);
     document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${flag} ${label}`;
@@ -585,7 +612,15 @@ async function syncEnToJa() {
   const btn = document.querySelector('.sync-btn');
   document.getElementById('replyLangLabel').textContent = '変換中...';
   try {
-    const ja = await callAI(`Translate into natural, warm Japanese. Friendly and frank (not formal keigo), but graceful and refined — never rough or vulgar. Keep emoji exactly as-is. Output ONLY the translation, no quotes.\n\n${en}`, 600);
+    const ja = await callAI(`Translate into natural, warm Japanese with these strict rules:
+- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
+- NEVER translate "I" as 俺 — always use 私 or 僕
+- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
+- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
+- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
+- If the comment mixes multiple languages, translate each part naturally into Japanese
+- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
+- Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${en}`, 600);
     document.getElementById('replyJaInput').value = ja;
   } catch(e) { showError('エラー: ' + e.message); }
   document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
