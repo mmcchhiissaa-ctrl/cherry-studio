@@ -265,24 +265,24 @@
       <div class="result-text ja" id="jaText"></div>
     </div>
 
-    <!-- ENGLISH REPLY — now editable textarea -->
+    <!-- JAPANESE REPLY — editable, shown FIRST -->
+    <div class="result-box">
+      <div class="result-label">
+        ✏️ 返信案（日本語）— 編集可能
+        <button class="copy-btn" onclick="copyArea('replyJaInput', this)">コピー</button>
+      </div>
+      <textarea class="editable" id="replyJaInput" rows="4" oninput="trackJaChanges()"></textarea>
+      <button class="sync-btn" onclick="syncJaToEn()">↺ 日本語を編集したら相手言語に同期（変更箇所のみ）</button>
+    </div>
+
+    <!-- REPLY IN ORIGINAL LANGUAGE — shown SECOND -->
     <div class="result-box">
       <div class="result-label">
         <span>✦ 返信案 <span id="replyLangLabel" style="color:var(--accent);"></span></span>
         <button class="copy-btn" onclick="copyArea('replyEnInput', this)">コピー</button>
       </div>
       <textarea class="editable" id="replyEnInput" rows="4" placeholder="返信案がここに表示されます（直接編集できます）"></textarea>
-      <button class="sync-btn" onclick="syncEnToJa()">↺ 英語を編集したら日本語に同期</button>
-    </div>
-
-    <!-- JAPANESE REPLY — editable -->
-    <div class="result-box">
-      <div class="result-label">
-        ✏️ 返信案（日本語）— 編集可能
-        <button class="copy-btn" onclick="copyArea('replyJaInput', this)">コピー</button>
-      </div>
-      <textarea class="editable" id="replyJaInput" rows="4"></textarea>
-      <button class="sync-btn" onclick="syncJaToEn()">↺ 日本語を編集したら元の言語に同期</button>
+      <button class="sync-btn" onclick="syncEnToJa()">↺ 相手言語を編集したら日本語に同期</button>
     </div>
 
     <button class="reset-btn" onclick="resetAll()">↩ リセット</button>
@@ -567,6 +567,8 @@ Comment: "${currentComment}"`, 150
     document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
+    lastSyncedJa = replyJa;
+    lastSyncedEn = reply;
 
     document.getElementById('loadingBox').style.display = 'none';
     document.getElementById('results').style.display = 'block';
@@ -599,17 +601,22 @@ async function switchLang(code, label, flag) {
     document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${flag} ${label}`;
+    lastSyncedJa = replyJa;
+    lastSyncedEn = reply;
   } catch(e) { showError('エラー: ' + e.message); }
 
   document.querySelectorAll('.lang-btn').forEach(b => b.disabled = false);
   renderLangBtns(code);
 }
 
-// 英語→日本語に同期
+// 差分検出用
+let lastSyncedJa = '';
+let lastSyncedEn = '';
+
+// 相手言語→日本語に同期
 async function syncEnToJa() {
   const en = document.getElementById('replyEnInput').value.trim();
   if (!apiKey || !en) return;
-  const btn = document.querySelector('.sync-btn');
   document.getElementById('replyLangLabel').textContent = '変換中...';
   try {
     const ja = await callAI(`Translate into natural, warm Japanese with these strict rules:
@@ -622,21 +629,41 @@ async function syncEnToJa() {
 - For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
 - Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${en}`, 600);
     document.getElementById('replyJaInput').value = ja;
+    lastSyncedJa = ja;
+    lastSyncedEn = en;
   } catch(e) { showError('エラー: ' + e.message); }
   document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
 }
 
-// 日本語→元言語に同期
+// 日本語→相手言語に同期（変更箇所のみ翻訳）
 async function syncJaToEn() {
-  const ja = document.getElementById('replyJaInput').value.trim();
-  if (!apiKey || !ja) return;
+  const jaNew = document.getElementById('replyJaInput').value.trim();
+  const enCurrent = document.getElementById('replyEnInput').value.trim();
+  if (!apiKey || !jaNew) return;
   document.getElementById('replyLangLabel').textContent = '変換中...';
   try {
-    const reply = await callAI(`Translate into ${currentLang.label}. Keep tone and emoji as-is. Output ONLY translation, no quotes.\n\n${ja}`, 600);
+    let prompt;
+    if (lastSyncedJa && lastSyncedEn && jaNew !== lastSyncedJa) {
+      prompt = `You are updating a ${currentLang.label} YouTube reply translation.
+
+Original Japanese (before edit): "${lastSyncedJa}"
+Edited Japanese (after edit): "${jaNew}"
+Current ${currentLang.label} translation: "${enCurrent}"
+
+Update ONLY the parts that changed. Keep all unchanged parts exactly as they are.
+Keep tone, style, and emoji exactly as-is.
+Output ONLY the updated ${currentLang.label} translation, no explanation, no quotes.`;
+    } else {
+      prompt = `Translate into ${currentLang.label}. Keep tone and emoji as-is. Output ONLY translation, no quotes.\n\n${jaNew}`;
+    }
+    const reply = await callAI(prompt, 600);
     document.getElementById('replyEnInput').value = reply;
+    lastSyncedJa = jaNew;
+    lastSyncedEn = reply;
   } catch(e) { showError('エラー: ' + e.message); }
   document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
 }
+
 
 function copyArea(id, btn) {
   const el = document.getElementById(id);
