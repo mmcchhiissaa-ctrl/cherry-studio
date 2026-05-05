@@ -291,50 +291,80 @@
 
 </div>
 <script>
-const SYSTEM = `You are writing YouTube comment replies for Cherry, a 55-year-old Japanese woman who vlogs about solo life in Tokyo. She is warm, genuine, quietly gracious — like an elegant adult friend, never an influencer or a brand. She has a Spanish partner of 10+ years but keeps her channel focused on solo life.
+const SYSTEM = `You are Cherry's comment assistant for her YouTube channel "Cherry's Solo Life in Japan."
 
-TONE:
-- Warm, light, gracious — adult elegance, never over-excited
-- Calm and natural — like a real person, not a performance
-- Match the commenter's emotional temperature exactly:
-  - Light or fun comment → light, friendly reply
-  - Heartfelt comment → sincere, slightly warmer reply
-  - New subscriber → simple welcome, thank them for finding the channel
-  - Heavy or emotional share → acknowledge their feeling briefly with one encouraging line, do NOT over-involve or give advice
-  - Question about personal info → ignore the question entirely, reply only to the emotional part if any
+ABOUT CHERRY:
+- 55 years old, lives in Tokyo, enjoys solo life
+- Punk rock spirit, authentic, Hot & Cool personality
+- Divorced about 15 years ago — that experience shaped her philosophy
+- Has a Spanish partner (from Barcelona) but keeps channel focused on solo life
+- Has a robot vacuum called R2D2 that appears in videos
+- Music project "Cherry's Cafe" (distributed on Spotify etc.)
+- Membership "Cherry's Circle" (¥490/month)
+- Substack: cherrysololife.substack.com
 
-STRUCTURE:
-- SHORT — 1 to 3 sentences maximum
-- No paragraph breaks (comment section, not email)
-- Never start with "Oh" or heavy exclamations
-- Match commenter's greeting: "Hi" → "Hello 😊", no greeting → no greeting
-- Simple thank you is always enough for compliments
-- Just agree and show appreciation — do NOT over-explain or self-assert
+YOUR TASK:
+For every comment, output in this exact format:
 
-EMOJI:
-- 1 emoji max, sometimes none
-- 🤭 only for gentle self-deprecating moments
-- Never multiple emoji in a row
+【翻訳】
+(Accurate, bright, friendly Japanese translation of the comment. No formal keigo. Keep emoji exactly as-is. No omissions or paraphrasing.)
 
-FORBIDDEN:
+【返信案・日本語】
+(Cherry's reply in Japanese)
+
+【英語版】
+(Cherry's reply in English)
+
+【〇〇語版】
+(Only if the comment is NOT in English — provide reply in the commenter's language. Replace 〇〇 with the actual language name.)
+
+TRANSLATION RULES:
+- Translate accurately and completely — no omissions, no over-interpretation
+- Bright, friendly Japanese — not stiff or formal
+- Keep all emoji exactly as written
+- NEVER translate "I" as 俺 — use 私 or 僕
+- NEVER translate greetings as よお or やあ — keep as ハイ / ハロー
+- NEVER translate "How are you?" as 元気か？— use 元気？or 調子はどう？
+- If commenter used Japanese words (Konnichiwa, Jya-ne, Genki etc.) — keep them exactly as written
+- Mixed language comments: translate each part naturally
+
+REPLY RULES — TONE:
+- Warm, gentle, graceful, light — never pushy or over-excited
+- Match the commenter's emotional temperature
+- 1 to 3 sentences maximum
+- Always end with: 素敵な一日を🥰 (Japanese) / Have a wonderful day🥰 (English)
+- Emoji: use sparingly — 1 max besides the closing emoji
+- If comment starts with Hi / Hello / Konnichiwa / Genki? — match with same greeting at start of reply
+
+REPLY RULES — FORBIDDEN:
 - "It means a lot to me" / "Your words mean a lot"
-- "I believe" → use "I think" or "I feel" or "I guess"
-- "Thank you for being here" / "Here"
-- Em dash (—)
-- Commenter's name or handle
-- Labeling commenter as "thoughtful", "insightful", "meaningful"
-- "I'm just enjoying my way" or any self-narration
-- Sarcasm, irony, or any condescending tone
+- "I believe" → use "I think" / "I feel" / "I guess"
+- "Thank you for being here"
+- Em dash (—) — absolutely forbidden, looks like AI
+- Addressing commenter by handle/username — ONLY use name if commenter clearly wrote their own name in the comment body
+- Labeling commenter: thoughtful, insightful, meaningful
+- Self-assertive phrases like "But I'm just doing xxx" or "Well I suppose that's one way to think"
+- Sarcasm or condescending tone
 - Quotation marks around the reply
-- Self-assertive phrases like "But I'm just doing xxx" or "Well, I suppose that's one way to think about it"
+
+SUBJECT RULES:
+- Cherry's opinion → "I"
+- Japanese customs/habits → "We Japanese"
+- Others → "They"
 
 SPECIAL CASES:
-- New subscriber → "Thank you for finding my channel 😊" style, simple and warm
-- Simple compliment → just "Thank you 😊", nothing more
-- Someone hopes she finds love → gently mention her wonderful long-term partner
-- Heavy emotional confession → one brief empathetic line + one gentle encouraging line, then stop. No life advice.
-- Personal or private questions → ignore completely, do not acknowledge
-- No politics, religion, ideology`;
+- New subscriber → "Thank you for finding my channel 😊 Have a wonderful day🥰"
+- Simple compliment → "Thank you 😊 Have a wonderful day🥰"
+- Heavy emotional confession → one brief empathetic line + one gentle encouraging line + closing. No life advice.
+- Personal/private questions (age details, address, relationship specifics) → ignore the question, reply only to emotional part if any
+- Questions about R2D2 → friendly reply about her robot vacuum
+- Questions about music → mention Cherry's Cafe on Spotify
+
+SKIP (do not create reply, just translate and note "スルー推奨"):
+- Political, religious, ideological debates
+- Sensitive topics about children
+- Meaningless/mumbling comments
+- Clear trolls or harassment`;
 
 const LANGS = [
   {code:'en',label:'English',flag:'🇬🇧'},
@@ -523,9 +553,8 @@ async function processComment() {
   try {
     setStep(1, '言語を検出中...');
     const langRaw = await callAI(
-      `Detect the PRIMARY language of this comment. If it mixes multiple languages, detect the dominant one. Reply ONLY with JSON (no markdown): {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
-Use es-419 for Latin American Spanish. Use note field for mixed language cases (e.g. "Mix of Japanese and English") or ambiguous cases.
-For very short comments or single words/slang, do your best to identify the language.
+      `Detect the PRIMARY language of this comment. Reply ONLY with JSON (no markdown): {"code":"en","label":"English","flag":"🇬🇧","confidence":"high","note":""}
+Use es-419 for Latin American Spanish. Note field for mixed language or ambiguous cases.
 Comment: "${currentComment}"`, 150
     );
     try {
@@ -538,37 +567,51 @@ Comment: "${currentComment}"`, 150
       `<div class="lang-badge">${currentLang.flag} <b>${currentLang.label}</b> <span class="lang-note">${conf}${currentLang.note?' — '+currentLang.note:''}</span></div>`;
     renderLangBtns(currentLang.code);
 
-    setStep(2, '日本語に翻訳中...');
-    const ja = await callAI(`Translate into natural, warm Japanese with these strict rules:
-- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
-- NEVER translate "I" as 俺 — always use 私 or 僕
-- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
-- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
-- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
-- If the comment mixes multiple languages, translate each part naturally into Japanese
-- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
-- Output ONLY the translation, no quotes, no explanation\n\n"${currentComment}"`, 600);
+    setStep(2, '翻訳・返信案を生成中...');
+    const fullOutput = await callAI(
+      `Here is a YouTube comment for Cherry's channel. Process it and output in the EXACT format below.
 
-    setStep(3, `${currentLang.flag} 返信案を生成中...`);
-    const reply = await callAI(`Write Cherry's reply in ${currentLang.label}. Follow all rules. Do NOT add quotation marks. If the comment contains Japanese words the commenter wrote intentionally (like Konnichiwa, Jya-ne, Genki), you may warmly acknowledge that in the reply.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
+Comment language detected: ${currentLang.label}
+Comment: "${currentComment}"
 
-    setStep(4, '返信を日本語に変換中...');
-    const replyJa = await callAI(`Translate into natural, warm Japanese with these strict rules:
-- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
-- NEVER translate "I" as 俺 — always use 私 or 僕
-- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
-- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
-- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
-- If the comment mixes multiple languages, translate each part naturally into Japanese
-- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
-- Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${reply}`, 600);
+Required output format:
+【翻訳】
+(Japanese translation here)
+
+【返信案・日本語】
+(Japanese reply here)
+
+【英語版】
+(English reply here)
+
+【${currentLang.label !== 'English' ? currentLang.label + '版' : 'skip'}】
+${currentLang.label !== 'English' ? '(' + currentLang.label + ' reply here)' : '(omit this section if English)'}`, 1500
+    );
+
+    // Parse structured output
+    const jaMatch = fullOutput.match(/【翻訳】\s*([\s\S]*?)(?=【返信案・日本語】)/);
+    const jaReplyMatch = fullOutput.match(/【返信案・日本語】\s*([\s\S]*?)(?=【英語版】)/);
+    const enReplyMatch = fullOutput.match(/【英語版】\s*([\s\S]*?)(?=【[^】]+版】|$)/);
+    const otherLangMatch = fullOutput.match(/【([^】]+版)】\s*([\s\S]*?)(?=$)/);
+
+    const ja = jaMatch ? jaMatch[1].trim() : fullOutput;
+    const replyJa = jaReplyMatch ? jaReplyMatch[1].trim() : '';
+    const replyEn = enReplyMatch ? enReplyMatch[1].trim() : '';
 
     document.getElementById('jaText').textContent = ja;
-    document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
-    document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
+
+    if (otherLangMatch && currentLang.label !== 'English') {
+      const otherText = otherLangMatch[2].trim();
+      document.getElementById('replyEnInput').value = otherText;
+      document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
+    } else {
+      document.getElementById('replyEnInput').value = replyEn;
+      document.getElementById('replyLangLabel').textContent = `${currentLang.flag} ${currentLang.label}`;
+    }
+
     lastSyncedJa = replyJa;
-    lastSyncedEn = reply;
+    lastSyncedEn = replyEn;
 
     document.getElementById('loadingBox').style.display = 'none';
     document.getElementById('results').style.display = 'block';
@@ -588,16 +631,25 @@ async function switchLang(code, label, flag) {
   document.getElementById('replyLangLabel').textContent = `${flag} 変換中...`;
 
   try {
-    const reply = await callAI(`Write Cherry's reply in ${label}. Follow all rules. No quotation marks.\n\nComment: "${currentComment}"\n\nReply only:`, 600);
-    const replyJa = await callAI(`Translate into natural, warm Japanese with these strict rules:
-- NOT formal keigo, but gentle and graceful — never rough, masculine, or vulgar
-- NEVER translate "I" as 俺 — always use 私 or 僕
-- NEVER translate "Are you okay?" or "How are you?" as 元気か？— use 元気？or 調子はどう？
-- NEVER translate "Hi" or "Hello" as よお or やあ — keep as ハイ or ハロー
-- If the commenter wrote Japanese words like Konnichiwa, Jya-ne, Genki — keep them exactly as written
-- If the comment mixes multiple languages, translate each part naturally into Japanese
-- For very short slang or single words, give the closest natural Japanese equivalent with brief context if needed
-- Keep emoji exactly as-is. Output ONLY the translation, no quotes, no explanation\n\n${reply}`, 600);
+    const switchOutput = await callAI(
+      `Write Cherry's reply to this comment in ${label}. Follow all rules. Also provide Japanese version.
+
+Comment: "${currentComment}"
+
+Output format:
+【返信案・日本語】
+(Japanese reply)
+
+【${label}版】
+(${label} reply)`, 800
+    );
+
+    const jaReplyMatch = switchOutput.match(/【返信案・日本語】\s*([\s\S]*?)(?=【[^】]+版】|$)/);
+    const langReplyMatch = switchOutput.match(/【[^】]+版】\s*([\s\S]*?)(?=$)/);
+
+    const replyJa = jaReplyMatch ? jaReplyMatch[1].trim() : '';
+    const reply = langReplyMatch ? langReplyMatch[1].trim() : switchOutput.trim();
+
     document.getElementById('replyEnInput').value = reply;
     document.getElementById('replyJaInput').value = replyJa;
     document.getElementById('replyLangLabel').textContent = `${flag} ${label}`;
